@@ -1,5 +1,5 @@
 import { Stack } from "expo-router";
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -60,7 +60,7 @@ export default function HomeScreen() {
   const setSyncProgress = useCaptureStore((state) => state.setSyncProgress);
   const signOut = useCaptureStore((state) => state.signOut);
 
-  const { request, response, promptAsync } = useGoogleAuthRequest();
+  const { promptAsync } = useGoogleAuthRequest();
 
   const toothReady = selectedArch !== null && selectedTooth !== null;
   const toothLabel =
@@ -78,19 +78,18 @@ export default function HomeScreen() {
     })();
   }, []);
 
-  // ── Handle OAuth response ──────────────────
-  useEffect(() => {
-    if (response?.type === "success" && response.params.access_token) {
-      const token = response.params.access_token;
-      const expiresIn = Number(response.params.expires_in) || 3600;
-      setAccessToken(token);
-      void persistToken(token, expiresIn);
+  // ── Handle Google login ─────────────────────
+  const handleGoogleLogin = useCallback(async () => {
+    const result = await promptAsync();
+    if (result.type === "success") {
+      setAccessToken(result.accessToken);
+      void persistToken(result.accessToken, result.expiresIn);
       showBanner({
         tone: "success",
         text: "Google Drive'a başarıyla giriş yapıldı.",
       });
     }
-  }, [response]);
+  }, [promptAsync, setAccessToken, showBanner]);
 
   useEffect(() => {
     void hydrateQueueCount();
@@ -156,7 +155,7 @@ export default function HomeScreen() {
   function handleSyncPress() {
     if (!accessToken) {
       // Not signed in → trigger Google login
-      void promptAsync();
+      void handleGoogleLogin();
       return;
     }
 
