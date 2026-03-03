@@ -1,4 +1,4 @@
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import * as ImagePicker from "expo-image-picker";
 import type { SurfaceId } from "../constants/dental";
 import type { CaptureRecord } from "../types/capture";
@@ -22,7 +22,7 @@ export async function captureDentalPhoto({
   const permission = await ImagePicker.requestCameraPermissionsAsync();
 
   if (!permission.granted) {
-    throw new Error("Camera permission is required to open the native camera app.");
+    throw new Error("Kamera izni gereklidir.");
   }
 
   const result = await ImagePicker.launchCameraAsync({
@@ -74,7 +74,7 @@ async function persistCapturedAsset(sourceUri: string, fileName: string) {
 
 async function ensureCaptureDirectory() {
   if (!FileSystem.documentDirectory) {
-    throw new Error("Document storage is unavailable on this device.");
+    throw new Error("Cihazda dosya depolama alanı kullanılamıyor.");
   }
 
   const directoryUri = `${FileSystem.documentDirectory}${CAPTURE_DIRECTORY_NAME}`;

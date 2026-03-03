@@ -17,8 +17,7 @@
           "cameraPermission": "Allow CuspisCam to launch the native camera for standardized clinical dental photography."
         }
       ],
-      "expo-web-browser",
-      "expo-crypto"
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": false

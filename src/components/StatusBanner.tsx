@@ -50,7 +50,7 @@ export function StatusBanner({ banner, onDismiss }: StatusBannerProps) {
       </Text>
       <Pressable onPress={onDismiss} style={styles.dismissButton}>
         <Text selectable style={[styles.dismissText, { color: palette.textColor }]}>
-          Close
+          Kapat
         </Text>
       </Pressable>
     </View>

@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from "react-native";
 import type { CaptureRecord } from "../types/capture";
-import { getSurfaceById } from "../constants/dental";
+import { getSurfaceById, parseToothDisplayFromSegment } from "../constants/dental";
 import { formatReadableDate } from "../utils/formatting";
 
 type CaptureListProps = {
@@ -12,11 +12,11 @@ export function CaptureList({ captures }: CaptureListProps) {
     return (
       <View style={styles.emptyState}>
         <Text selectable style={styles.emptyTitle}>
-          No images captured yet
+          Henüz çekim yapılmadı
         </Text>
         <Text selectable style={styles.emptyBody}>
-          Start with a tooth and surface selection. The native camera will open as
-          soon as a surface is tapped.
+          Çene ve diş seçimi yapın, ardından yüzey butonuna dokunarak kamerayı
+          açın.
         </Text>
       </View>
     );
@@ -26,16 +26,17 @@ export function CaptureList({ captures }: CaptureListProps) {
     <View style={styles.list}>
       {captures.map((capture) => {
         const surface = getSurfaceById(capture.surfaceId);
+        const toothDisplay = parseToothDisplayFromSegment(capture.tooth);
 
         return (
           <View key={capture.id} style={styles.item}>
             <View style={styles.itemHeader}>
               <Text selectable style={styles.itemTitle}>
-                Tooth {capture.tooth} / {surface?.shortLabel ?? capture.surfaceId}
+                {toothDisplay} / {surface?.shortLabel ?? capture.surfaceId}
               </Text>
               <View style={styles.statusTag}>
                 <Text selectable style={styles.statusTagText}>
-                  Saved locally
+                  Yerel kayıt
                 </Text>
               </View>
             </View>
@@ -43,7 +44,7 @@ export function CaptureList({ captures }: CaptureListProps) {
               {capture.fileName}
             </Text>
             <Text selectable style={styles.meta}>
-              {formatReadableDate(capture.capturedAt)} / queued for upload
+              {formatReadableDate(capture.capturedAt)} / yükleme kuyruğunda
             </Text>
           </View>
         );

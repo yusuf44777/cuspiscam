@@ -5,18 +5,18 @@ import { SafeAreaView } from "react-native-safe-area-context";
 export default function NotFoundScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
-      <Stack.Screen options={{ title: "Not Found" }} />
+      <Stack.Screen options={{ title: "Bulunamadı" }} />
       <View style={styles.card}>
         <Text selectable style={styles.title}>
-          Screen not found
+          Sayfa bulunamadı
         </Text>
         <Text selectable style={styles.description}>
-          The requested route does not exist in this scaffold.
+          İstenen sayfa bu uygulamada mevcut değil.
         </Text>
         <Link href="/" asChild>
           <Pressable style={styles.button}>
             <Text selectable style={styles.buttonText}>
-              Return to capture flow
+              Çekim ekranına dön
             </Text>
           </Pressable>
         </Link>

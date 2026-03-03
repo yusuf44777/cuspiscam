@@ -6,7 +6,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -14,8 +13,14 @@ import { CaptureList } from "../src/components/CaptureList";
 import { SectionCard } from "../src/components/SectionCard";
 import { StatusBanner } from "../src/components/StatusBanner";
 import { SurfaceSelector } from "../src/components/SurfaceSelector";
-import { ToothGrid } from "../src/components/ToothGrid";
-import type { SurfaceId } from "../src/constants/dental";
+import { ToothSelector } from "../src/components/ToothSelector";
+import {
+  type SurfaceId,
+  type ArchId,
+  type ToothTypeId,
+  buildToothFileSegment,
+  getToothDisplayLabel,
+} from "../src/constants/dental";
 import {
   useGoogleAuthRequest,
   getPersistedToken,
@@ -31,14 +36,14 @@ import {
 import { useCaptureStore } from "../src/store/useCaptureStore";
 
 export default function HomeScreen() {
-  const patientIdInput = useCaptureStore((state) => state.patientIdInput);
   const generatedSessionId = useCaptureStore((state) => state.generatedSessionId);
+  const selectedArch = useCaptureStore((state) => state.selectedArch);
   const selectedTooth = useCaptureStore((state) => state.selectedTooth);
   const recentCaptures = useCaptureStore((state) => state.recentCaptures);
   const pendingCount = useCaptureStore((state) => state.pendingCount);
   const isCapturing = useCaptureStore((state) => state.isCapturing);
   const banner = useCaptureStore((state) => state.banner);
-  const setPatientIdInput = useCaptureStore((state) => state.setPatientIdInput);
+  const setArch = useCaptureStore((state) => state.setArch);
   const selectTooth = useCaptureStore((state) => state.selectTooth);
   const setPendingCount = useCaptureStore((state) => state.setPendingCount);
   const beginCapture = useCaptureStore((state) => state.beginCapture);
@@ -57,7 +62,11 @@ export default function HomeScreen() {
 
   const { request, response, promptAsync } = useGoogleAuthRequest();
 
-  const activeSessionId = patientIdInput.trim() || generatedSessionId;
+  const toothReady = selectedArch !== null && selectedTooth !== null;
+  const toothLabel =
+    selectedArch && selectedTooth
+      ? getToothDisplayLabel(selectedArch, selectedTooth)
+      : null;
 
   // ── Restore persisted token on mount ───────
   useEffect(() => {
@@ -78,7 +87,7 @@ export default function HomeScreen() {
       void persistToken(token, expiresIn);
       showBanner({
         tone: "success",
-        text: "Signed in to Google Drive successfully.",
+        text: "Google Drive'a başarıyla giriş yapıldı.",
       });
     }
   }, [response]);
@@ -105,24 +114,25 @@ export default function HomeScreen() {
   }
 
   async function handleSurfaceSelection(surfaceId: SurfaceId) {
-    if (!selectedTooth || isCapturing) {
+    if (!selectedArch || !selectedTooth || isCapturing) {
       return;
     }
 
     beginCapture();
 
+    const toothFileSegment = buildToothFileSegment(selectedArch, selectedTooth);
+
     try {
       const result = await captureDentalPhoto({
-        patientId: patientIdInput.trim() || undefined,
-        sessionId: activeSessionId,
-        tooth: selectedTooth,
+        sessionId: generatedSessionId,
+        tooth: toothFileSegment,
         surfaceId,
       });
 
       if (!result) {
         showBanner({
           tone: "info",
-          text: "Native camera capture was canceled.",
+          text: "Kamera çekimi iptal edildi.",
         });
         return;
       }
@@ -134,7 +144,7 @@ export default function HomeScreen() {
       const message =
         error instanceof Error
           ? error.message
-          : "Unable to open the camera or save the image.";
+          : "Kamera açılamadı veya görüntü kaydedilemedi.";
 
       showBanner({
         tone: "error",
@@ -166,27 +176,27 @@ export default function HomeScreen() {
         if (result.uploaded > 0 && result.failed === 0) {
           showBanner({
             tone: "success",
-            text: `${result.uploaded} file(s) uploaded to Google Drive.`,
+            text: `${result.uploaded} dosya Google Drive'a yüklendi.`,
           });
         } else if (result.uploaded > 0 && result.failed > 0) {
           showBanner({
             tone: "info",
-            text: `${result.uploaded} uploaded, ${result.failed} failed. Retry later.`,
+            text: `${result.uploaded} yüklendi, ${result.failed} başarısız. Daha sonra tekrar deneyin.`,
           });
         } else if (result.failed > 0) {
           showBanner({
             tone: "error",
-            text: `Upload failed for ${result.failed} file(s). ${result.errors[0] ?? ""}`,
+            text: `${result.failed} dosyanın yüklemesi başarısız. ${result.errors[0] ?? ""}`,
           });
         } else {
           showBanner({
             tone: "info",
-            text: "No pending uploads to sync.",
+            text: "Yüklenecek dosya bulunmuyor.",
           });
         }
       } catch (error) {
         const message =
-          error instanceof Error ? error.message : "Sync failed.";
+          error instanceof Error ? error.message : "Senkronizasyon başarısız.";
         showBanner({ tone: "error", text: message });
       } finally {
         setIsSyncing(false);
@@ -200,43 +210,43 @@ export default function HomeScreen() {
     signOut();
   }
 
-  const selectedSurfaceHint = selectedTooth
-    ? `Tooth ${selectedTooth} selected. Tap a surface to launch the native camera app.`
-    : "Choose a tooth first. Surface buttons stay disabled until a tooth is selected.";
+  const selectedSurfaceHint = toothReady
+    ? `${toothLabel} seçildi. Yüzey butonuna dokunarak kamerayı açın.`
+    : "Önce çene ve diş seçimi yapın. Yüzey butonları diş seçilmeden aktif olmaz.";
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <Stack.Screen options={{ title: "Clinical Capture" }} />
+      <Stack.Screen options={{ title: "Klinik Çekim" }} />
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.hero}>
           <Text selectable style={styles.eyebrow}>
-            STANDARDIZED DENTAL PHOTOGRAPHY
+            STANDARDİZE DİŞ HEKİMLİĞİ FOTOĞRAFÇILIĞI
           </Text>
           <Text selectable style={styles.heroTitle}>
-            Native camera workflow with deterministic file naming.
+            Kamera iş akışı ve otomatik dosya isimlendirme.
           </Text>
           <Text selectable style={styles.heroBody}>
-            Select a session, tooth, and surface. Each confirmed image is copied to
-            local app storage and staged for cloud archiving.
+            Çene, diş ve yüzey seçin. Onaylanan her görüntü yerel depolamaya
+            kaydedilir ve bulut arşivleme için kuyruğa alınır.
           </Text>
           <View style={styles.heroStatsRow}>
             <View style={styles.heroStat}>
               <Text selectable style={styles.heroStatLabel}>
-                Active session
+                Bekleyen yükleme
               </Text>
               <Text selectable style={styles.heroStatValue}>
-                {activeSessionId}
+                {pendingCount}
               </Text>
             </View>
             <View style={styles.heroStat}>
               <Text selectable style={styles.heroStatLabel}>
-                Pending queue
+                Oturum
               </Text>
               <Text selectable style={styles.heroStatValue}>
-                {pendingCount}
+                {generatedSessionId}
               </Text>
             </View>
           </View>
@@ -245,72 +255,51 @@ export default function HomeScreen() {
         <StatusBanner banner={banner} onDismiss={clearBanner} />
 
         <SectionCard
-          title="Session ID"
-          description="Use a patient or case ID as the filename prefix. Leave blank to keep the generated timestamp session."
+          title="Diş Seçimi"
+          description="Çene seçin, ardından açılır listeden diş türünü belirleyin."
         >
-          <TextInput
-            value={patientIdInput}
-            onChangeText={setPatientIdInput}
-            placeholder="Optional Patient ID or Case Number"
-            placeholderTextColor="#8196A0"
-            style={styles.input}
-            autoCapitalize="characters"
-            autoCorrect={false}
-          />
-          <View style={styles.sessionPreview}>
-            <Text selectable style={styles.sessionPreviewLabel}>
-              Current prefix
-            </Text>
-            <Text selectable style={styles.sessionPreviewValue}>
-              {activeSessionId}
-            </Text>
-            <Text selectable style={styles.sessionPreviewHint}>
-              Blank input falls back to {generatedSessionId}
-            </Text>
-          </View>
-        </SectionCard>
-
-        <SectionCard
-          title="Tooth Selection"
-          description="Adult dentition in FDI notation. Large targets are sized for gloved operation."
-        >
-          <ToothGrid selectedTooth={selectedTooth} onSelect={selectTooth} />
-        </SectionCard>
-
-        <SectionCard title="Surface Selection" description={selectedSurfaceHint}>
-          <SurfaceSelector
+          <ToothSelector
+            selectedArch={selectedArch}
             selectedTooth={selectedTooth}
-            disabled={!selectedTooth || isCapturing}
+            onSelectArch={setArch}
+            onSelectTooth={selectTooth}
+          />
+        </SectionCard>
+
+        <SectionCard title="Yüzey Seçimi" description={selectedSurfaceHint}>
+          <SurfaceSelector
+            toothLabel={toothLabel}
+            disabled={!toothReady || isCapturing}
             onSelect={handleSurfaceSelection}
           />
-          {selectedTooth ? (
+          {toothReady ? (
             <Text selectable style={styles.selectionSummary}>
-              Selected tooth {selectedTooth}. Tap any surface button above to
-              launch the camera.
+              {toothLabel} seçildi. Yukarıdaki yüzey butonlarından birine
+              dokunarak kamerayı açın.
             </Text>
           ) : null}
           {isCapturing ? (
             <View style={styles.captureBusyRow}>
               <ActivityIndicator color="#0E788E" />
               <Text selectable style={styles.captureBusyText}>
-                Waiting for the native camera result...
+                Kamera sonucu bekleniyor...
               </Text>
             </View>
           ) : null}
         </SectionCard>
 
         <SectionCard
-          title="Archive Queue"
+          title="Arşiv Kuyruğu"
           description={
             accessToken
-              ? "Connected to Google Drive. Tap sync to upload pending captures."
-              : "Sign in to Google Drive to enable cloud archiving."
+              ? "Google Drive'a bağlı. Bekleyen çekimleri yüklemek için senkronize edin."
+              : "Bulut arşivleme için Google Drive'a giriş yapın."
           }
         >
           <View style={styles.queueRow}>
             <View style={styles.queuePill}>
               <Text selectable style={styles.queuePillLabel}>
-                Pending uploads
+                Bekleyen yükleme
               </Text>
               <Text selectable style={styles.queuePillValue}>
                 {pendingCount}
@@ -321,7 +310,7 @@ export default function HomeScreen() {
               <View style={styles.syncProgressRow}>
                 <ActivityIndicator color="#0E788E" />
                 <Text selectable style={styles.syncProgressText}>
-                  Uploading {syncProgress.completed + syncProgress.failed + 1}/
+                  Yükleniyor {syncProgress.completed + syncProgress.failed + 1}/
                   {syncProgress.total}
                   {syncProgress.current ? ` — ${syncProgress.current}` : ""}
                 </Text>
@@ -339,10 +328,10 @@ export default function HomeScreen() {
             >
               <Text selectable style={styles.syncButtonText}>
                 {!accessToken
-                  ? "Sign in to Google Drive"
+                  ? "Google Drive'a Giriş Yap"
                   : isSyncing
-                    ? "Syncing..."
-                    : "Sync pending uploads"}
+                    ? "Senkronize ediliyor..."
+                    : "Bekleyenleri senkronize et"}
               </Text>
             </Pressable>
 
@@ -355,7 +344,7 @@ export default function HomeScreen() {
                 ]}
               >
                 <Text selectable style={styles.signOutButtonText}>
-                  Sign out of Google Drive
+                  Google Drive oturumunu kapat
                 </Text>
               </Pressable>
             ) : null}
@@ -363,8 +352,8 @@ export default function HomeScreen() {
         </SectionCard>
 
         <SectionCard
-          title="Recent Captures"
-          description="Latest locally renamed files from the current session."
+          title="Son Çekimler"
+          description="Bu oturumda yerel olarak kaydedilen son dosyalar."
         >
           <CaptureList captures={recentCaptures} />
         </SectionCard>
@@ -436,40 +425,6 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "700",
-  },
-  input: {
-    minHeight: 64,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "#CEE0E5",
-    backgroundColor: "#F9FCFC",
-    paddingHorizontal: 18,
-    color: "#11313C",
-    fontSize: 17,
-    fontWeight: "600",
-  },
-  sessionPreview: {
-    borderRadius: 22,
-    backgroundColor: "#EFF6F7",
-    padding: 16,
-    gap: 6,
-  },
-  sessionPreviewLabel: {
-    color: "#617983",
-    fontSize: 12,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
-  },
-  sessionPreviewValue: {
-    color: "#11313C",
-    fontFamily: "Avenir Next",
-    fontSize: 20,
-    fontWeight: "700",
-  },
-  sessionPreviewHint: {
-    color: "#7B9099",
-    fontSize: 13,
   },
   selectionSummary: {
     color: "#617983",

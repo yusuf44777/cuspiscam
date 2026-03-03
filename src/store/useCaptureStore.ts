@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { CaptureRecord } from "../types/capture";
 import type { SyncProgress } from "../services/uploadQueue";
+import type { ArchId, ToothTypeId } from "../constants/dental";
 import { createGeneratedSessionId } from "../utils/formatting";
 
 export type BannerState =
@@ -11,10 +12,10 @@ export type BannerState =
   | null;
 
 type CaptureState = {
-  // ── Session ────────────────────────────────
-  patientIdInput: string;
+  // ── Oturum & seçim ─────────────────────────
   generatedSessionId: string;
-  selectedTooth: string | null;
+  selectedArch: ArchId | null;
+  selectedTooth: ToothTypeId | null;
   recentCaptures: CaptureRecord[];
   pendingCount: number;
   isCapturing: boolean;
@@ -25,16 +26,16 @@ type CaptureState = {
   isSyncing: boolean;
   syncProgress: SyncProgress | null;
 
-  // ── Session actions ────────────────────────
-  setPatientIdInput: (value: string) => void;
-  selectTooth: (tooth: string) => void;
+  // ── Seçim aksiyonları ──────────────────────
+  setArch: (arch: ArchId) => void;
+  selectTooth: (tooth: ToothTypeId) => void;
   setPendingCount: (count: number) => void;
   beginCapture: () => void;
   finishCapture: (capture: CaptureRecord) => void;
   showBanner: (banner: Exclude<BannerState, null>) => void;
   clearBanner: () => void;
 
-  // ── Auth actions ───────────────────────────
+  // ── Auth aksiyonları ───────────────────────
   setAccessToken: (token: string | null) => void;
   setIsSyncing: (syncing: boolean) => void;
   setSyncProgress: (progress: SyncProgress | null) => void;
@@ -42,8 +43,8 @@ type CaptureState = {
 };
 
 export const useCaptureStore = create<CaptureState>((set) => ({
-  patientIdInput: "",
   generatedSessionId: createGeneratedSessionId(),
+  selectedArch: null,
   selectedTooth: null,
   recentCaptures: [],
   pendingCount: 0,
@@ -55,7 +56,7 @@ export const useCaptureStore = create<CaptureState>((set) => ({
   isSyncing: false,
   syncProgress: null,
 
-  setPatientIdInput: (value) => set({ patientIdInput: value }),
+  setArch: (arch) => set({ selectedArch: arch, selectedTooth: null }),
   selectTooth: (tooth) => set({ selectedTooth: tooth }),
   setPendingCount: (count) => set({ pendingCount: count }),
   beginCapture: () => set({ isCapturing: true, banner: null }),
@@ -65,7 +66,7 @@ export const useCaptureStore = create<CaptureState>((set) => ({
       recentCaptures: [capture, ...state.recentCaptures].slice(0, 10),
       banner: {
         tone: "success",
-        text: `Saved ${capture.fileName} to local storage and queued it for sync.`,
+        text: `${capture.fileName} yerel kayda alındı ve senkron kuyruğuna eklendi.`,
       },
     })),
   showBanner: (banner) => set({ isCapturing: false, banner }),
@@ -80,7 +81,7 @@ export const useCaptureStore = create<CaptureState>((set) => ({
       accessToken: null,
       isSyncing: false,
       syncProgress: null,
-      banner: { tone: "info", text: "Signed out of Google Drive." },
+      banner: { tone: "info", text: "Google Drive oturumu kapatıldı." },
     }),
 }));
 

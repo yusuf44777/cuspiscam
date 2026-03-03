@@ -2,13 +2,13 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SURFACES } from "../constants/dental";
 
 type SurfaceSelectorProps = {
-  selectedTooth: string | null;
+  toothLabel: string | null;
   disabled: boolean;
   onSelect: (surfaceId: (typeof SURFACES)[number]["id"]) => void;
 };
 
 export function SurfaceSelector({
-  selectedTooth,
+  toothLabel,
   disabled,
   onSelect,
 }: SurfaceSelectorProps) {
@@ -32,9 +32,9 @@ export function SurfaceSelector({
             {surface.label}
           </Text>
           <Text selectable style={styles.surfaceHint}>
-            {selectedTooth
-              ? `Capture Tooth ${selectedTooth}`
-              : "Select a tooth first"}
+            {toothLabel
+              ? `Çekim: ${toothLabel}`
+              : "Önce bir diş seçin"}
           </Text>
         </Pressable>
       ))}

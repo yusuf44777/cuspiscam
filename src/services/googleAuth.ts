@@ -72,6 +72,7 @@ export function useGoogleAuthRequest() {
       scopes: SCOPES,
       redirectUri,
       responseType: AuthSession.ResponseType.Token,
+      usePKCE: false,
     },
     DISCOVERY,
   );

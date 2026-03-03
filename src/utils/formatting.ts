@@ -50,7 +50,7 @@ export function createCompactStamp(dateLike: string) {
 export function formatReadableDate(dateLike: string) {
   const date = new Date(dateLike);
 
-  return date.toLocaleString("en-US", {
+  return date.toLocaleString("tr-TR", {
     year: "numeric",
     month: "short",
     day: "2-digit",

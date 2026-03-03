@@ -1,4 +1,4 @@
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import type { QueuedUpload } from "../types/capture";
 
 export const GOOGLE_DRIVE_SYNC_ENABLED = true;
