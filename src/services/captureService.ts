@@ -6,31 +6,46 @@ import { buildCaptureFileName, sanitizeFileSegment } from "../utils/formatting";
 
 type CaptureDentalPhotoParams = {
   patientId?: string;
-  sessionId: string;
   tooth: string;
   surfaceId: SurfaceId;
+  source?: "camera" | "gallery";
 };
 
 const CAPTURE_DIRECTORY_NAME = "captures";
 
 export async function captureDentalPhoto({
   patientId,
-  sessionId,
   tooth,
   surfaceId,
+  source = "camera",
 }: CaptureDentalPhotoParams): Promise<CaptureRecord | null> {
-  const permission = await ImagePicker.requestCameraPermissionsAsync();
+  let result: ImagePicker.ImagePickerResult;
 
-  if (!permission.granted) {
-    throw new Error("Kamera izni gereklidir.");
+  if (source === "gallery") {
+    const mediaPermission =
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!mediaPermission.granted) {
+      throw new Error("Galeri izni gereklidir.");
+    }
+    result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      quality: 1,
+      allowsEditing: false,
+      exif: false,
+    });
+  } else {
+    const cameraPermission =
+      await ImagePicker.requestCameraPermissionsAsync();
+    if (!cameraPermission.granted) {
+      throw new Error("Kamera izni gereklidir.");
+    }
+    result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ["images"],
+      quality: 1,
+      allowsEditing: false,
+      exif: false,
+    });
   }
-
-  const result = await ImagePicker.launchCameraAsync({
-    mediaTypes: ["images"],
-    quality: 1,
-    allowsEditing: false,
-    exif: false,
-  });
 
   if (result.canceled || !result.assets?.[0]) {
     return null;
@@ -40,7 +55,6 @@ export async function captureDentalPhoto({
   const capturedAt = new Date().toISOString();
   const extension = detectExtension(asset.uri, asset.fileName);
   const fileName = buildCaptureFileName({
-    sessionId,
     tooth,
     surfaceId,
     capturedAt,
@@ -51,7 +65,6 @@ export async function captureDentalPhoto({
   return {
     id: createCaptureId(capturedAt, tooth, surfaceId),
     patientId: patientId ? sanitizeFileSegment(patientId) : undefined,
-    sessionId: sanitizeFileSegment(sessionId),
     tooth,
     surfaceId,
     capturedAt,

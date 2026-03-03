@@ -3,7 +3,6 @@ import type { SurfaceId } from "../constants/dental";
 export type CaptureRecord = {
   id: string;
   patientId?: string;
-  sessionId: string;
   tooth: string;
   surfaceId: SurfaceId;
   capturedAt: string;

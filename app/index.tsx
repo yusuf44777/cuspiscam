@@ -36,7 +36,6 @@ import {
 import { useCaptureStore } from "../src/store/useCaptureStore";
 
 export default function HomeScreen() {
-  const generatedSessionId = useCaptureStore((state) => state.generatedSessionId);
   const selectedArch = useCaptureStore((state) => state.selectedArch);
   const selectedTooth = useCaptureStore((state) => state.selectedTooth);
   const recentCaptures = useCaptureStore((state) => state.recentCaptures);
@@ -112,7 +111,7 @@ export default function HomeScreen() {
     setPendingCount(count);
   }
 
-  async function handleSurfaceSelection(surfaceId: SurfaceId) {
+  async function handleSurfaceSelection(surfaceId: SurfaceId, source: "camera" | "gallery" = "camera") {
     if (!selectedArch || !selectedTooth || isCapturing) {
       return;
     }
@@ -123,9 +122,9 @@ export default function HomeScreen() {
 
     try {
       const result = await captureDentalPhoto({
-        sessionId: generatedSessionId,
         tooth: toothFileSegment,
         surfaceId,
+        source,
       });
 
       if (!result) {
@@ -238,14 +237,6 @@ export default function HomeScreen() {
               </Text>
               <Text selectable style={styles.heroStatValue}>
                 {pendingCount}
-              </Text>
-            </View>
-            <View style={styles.heroStat}>
-              <Text selectable style={styles.heroStatLabel}>
-                Oturum
-              </Text>
-              <Text selectable style={styles.heroStatValue}>
-                {generatedSessionId}
               </Text>
             </View>
           </View>

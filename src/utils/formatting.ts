@@ -1,28 +1,21 @@
 import type { SurfaceId } from "../constants/dental";
 
 type BuildCaptureFileNameParams = {
-  sessionId: string;
   tooth: string;
   surfaceId: SurfaceId;
   capturedAt: string;
   extension?: string;
 };
 
-export function createGeneratedSessionId(date = new Date()) {
-  return `SESSION-${createCompactStamp(date.toISOString())}`;
-}
-
 export function buildCaptureFileName({
-  sessionId,
   tooth,
   surfaceId,
   capturedAt,
   extension = "jpg",
 }: BuildCaptureFileNameParams) {
-  const safeSessionId = sanitizeFileSegment(sessionId);
   const safeExtension = sanitizeFileSegment(extension) || "jpg";
 
-  return `${safeSessionId}_Tooth-${tooth}_Surface-${surfaceId}_${createCompactStamp(
+  return `Tooth-${tooth}_Surface-${surfaceId}_${createCompactStamp(
     capturedAt,
   )}.${safeExtension}`;
 }

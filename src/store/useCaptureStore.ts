@@ -2,7 +2,6 @@ import { create } from "zustand";
 import type { CaptureRecord } from "../types/capture";
 import type { SyncProgress } from "../services/uploadQueue";
 import type { ArchId, ToothTypeId } from "../constants/dental";
-import { createGeneratedSessionId } from "../utils/formatting";
 
 export type BannerState =
   | {
@@ -12,8 +11,7 @@ export type BannerState =
   | null;
 
 type CaptureState = {
-  // ── Oturum & seçim ─────────────────────────
-  generatedSessionId: string;
+  // ── Seçim ───────────────────────────────
   selectedArch: ArchId | null;
   selectedTooth: ToothTypeId | null;
   recentCaptures: CaptureRecord[];
@@ -43,7 +41,6 @@ type CaptureState = {
 };
 
 export const useCaptureStore = create<CaptureState>((set) => ({
-  generatedSessionId: createGeneratedSessionId(),
   selectedArch: null,
   selectedTooth: null,
   recentCaptures: [],
