@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "CuspisCam",
+    "slug": "cuspiscam",
+    "scheme": "cuspiscam",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "plugins": [
+      "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Allow CuspisCam to launch the native camera for standardized clinical dental photography."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": false
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.cuspiscam.app",
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "5ffa263b-a3a9-4422-9fce-9a878733894d"
+      }
+    },
+    "owner": "cuspiscam"
+  }
+}
