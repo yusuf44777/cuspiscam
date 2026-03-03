@@ -16,13 +16,16 @@
         {
           "cameraPermission": "Allow CuspisCam to launch the native camera for standardized clinical dental photography."
         }
-      ]
+      ],
+      "expo-web-browser",
+      "expo-crypto"
     ],
     "experiments": {
       "typedRoutes": false
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.cuspiscam.app"
     },
     "android": {
       "package": "com.cuspiscam.app",

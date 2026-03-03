@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { CaptureRecord } from "../types/capture";
+import type { SyncProgress } from "../services/uploadQueue";
 import { createGeneratedSessionId } from "../utils/formatting";
 
 export type BannerState =
@@ -10,6 +11,7 @@ export type BannerState =
   | null;
 
 type CaptureState = {
+  // ── Session ────────────────────────────────
   patientIdInput: string;
   generatedSessionId: string;
   selectedTooth: string | null;
@@ -17,6 +19,13 @@ type CaptureState = {
   pendingCount: number;
   isCapturing: boolean;
   banner: BannerState;
+
+  // ── Google Auth ────────────────────────────
+  accessToken: string | null;
+  isSyncing: boolean;
+  syncProgress: SyncProgress | null;
+
+  // ── Session actions ────────────────────────
   setPatientIdInput: (value: string) => void;
   selectTooth: (tooth: string) => void;
   setPendingCount: (count: number) => void;
@@ -24,6 +33,12 @@ type CaptureState = {
   finishCapture: (capture: CaptureRecord) => void;
   showBanner: (banner: Exclude<BannerState, null>) => void;
   clearBanner: () => void;
+
+  // ── Auth actions ───────────────────────────
+  setAccessToken: (token: string | null) => void;
+  setIsSyncing: (syncing: boolean) => void;
+  setSyncProgress: (progress: SyncProgress | null) => void;
+  signOut: () => void;
 };
 
 export const useCaptureStore = create<CaptureState>((set) => ({
@@ -34,6 +49,12 @@ export const useCaptureStore = create<CaptureState>((set) => ({
   pendingCount: 0,
   isCapturing: false,
   banner: null,
+
+  // Auth defaults
+  accessToken: null,
+  isSyncing: false,
+  syncProgress: null,
+
   setPatientIdInput: (value) => set({ patientIdInput: value }),
   selectTooth: (tooth) => set({ selectedTooth: tooth }),
   setPendingCount: (count) => set({ pendingCount: count }),
@@ -49,5 +70,17 @@ export const useCaptureStore = create<CaptureState>((set) => ({
     })),
   showBanner: (banner) => set({ isCapturing: false, banner }),
   clearBanner: () => set({ banner: null }),
+
+  // Auth actions
+  setAccessToken: (token) => set({ accessToken: token }),
+  setIsSyncing: (syncing) => set({ isSyncing: syncing }),
+  setSyncProgress: (progress) => set({ syncProgress: progress }),
+  signOut: () =>
+    set({
+      accessToken: null,
+      isSyncing: false,
+      syncProgress: null,
+      banner: { tone: "info", text: "Signed out of Google Drive." },
+    }),
 }));
 

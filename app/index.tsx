@@ -16,11 +16,17 @@ import { StatusBanner } from "../src/components/StatusBanner";
 import { SurfaceSelector } from "../src/components/SurfaceSelector";
 import { ToothGrid } from "../src/components/ToothGrid";
 import type { SurfaceId } from "../src/constants/dental";
-import { GOOGLE_DRIVE_SYNC_ENABLED } from "../src/services/googleDrive";
+import {
+  useGoogleAuthRequest,
+  getPersistedToken,
+  persistToken,
+  clearPersistedToken,
+} from "../src/services/googleAuth";
 import { captureDentalPhoto } from "../src/services/captureService";
 import {
   enqueueUpload,
   getPendingUploadCount,
+  syncPendingUploads,
 } from "../src/services/uploadQueue";
 import { useCaptureStore } from "../src/store/useCaptureStore";
 
@@ -40,7 +46,42 @@ export default function HomeScreen() {
   const showBanner = useCaptureStore((state) => state.showBanner);
   const clearBanner = useCaptureStore((state) => state.clearBanner);
 
+  // ── Google Auth state ──────────────────────
+  const accessToken = useCaptureStore((state) => state.accessToken);
+  const isSyncing = useCaptureStore((state) => state.isSyncing);
+  const syncProgress = useCaptureStore((state) => state.syncProgress);
+  const setAccessToken = useCaptureStore((state) => state.setAccessToken);
+  const setIsSyncing = useCaptureStore((state) => state.setIsSyncing);
+  const setSyncProgress = useCaptureStore((state) => state.setSyncProgress);
+  const signOut = useCaptureStore((state) => state.signOut);
+
+  const { request, response, promptAsync } = useGoogleAuthRequest();
+
   const activeSessionId = patientIdInput.trim() || generatedSessionId;
+
+  // ── Restore persisted token on mount ───────
+  useEffect(() => {
+    void (async () => {
+      const stored = await getPersistedToken();
+      if (stored) {
+        setAccessToken(stored.accessToken);
+      }
+    })();
+  }, []);
+
+  // ── Handle OAuth response ──────────────────
+  useEffect(() => {
+    if (response?.type === "success" && response.params.access_token) {
+      const token = response.params.access_token;
+      const expiresIn = Number(response.params.expires_in) || 3600;
+      setAccessToken(token);
+      void persistToken(token, expiresIn);
+      showBanner({
+        tone: "success",
+        text: "Signed in to Google Drive successfully.",
+      });
+    }
+  }, [response]);
 
   useEffect(() => {
     void hydrateQueueCount();
@@ -103,10 +144,60 @@ export default function HomeScreen() {
   }
 
   function handleSyncPress() {
-    showBanner({
-      tone: "info",
-      text: "Google Drive upload is scaffolded next. Captures are already queued locally.",
-    });
+    if (!accessToken) {
+      // Not signed in → trigger Google login
+      void promptAsync();
+      return;
+    }
+
+    if (isSyncing) return;
+
+    void (async () => {
+      setIsSyncing(true);
+      setSyncProgress(null);
+
+      try {
+        const result = await syncPendingUploads(accessToken, (progress) => {
+          setSyncProgress(progress);
+        });
+
+        await hydrateQueueCount();
+
+        if (result.uploaded > 0 && result.failed === 0) {
+          showBanner({
+            tone: "success",
+            text: `${result.uploaded} file(s) uploaded to Google Drive.`,
+          });
+        } else if (result.uploaded > 0 && result.failed > 0) {
+          showBanner({
+            tone: "info",
+            text: `${result.uploaded} uploaded, ${result.failed} failed. Retry later.`,
+          });
+        } else if (result.failed > 0) {
+          showBanner({
+            tone: "error",
+            text: `Upload failed for ${result.failed} file(s). ${result.errors[0] ?? ""}`,
+          });
+        } else {
+          showBanner({
+            tone: "info",
+            text: "No pending uploads to sync.",
+          });
+        }
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Sync failed.";
+        showBanner({ tone: "error", text: message });
+      } finally {
+        setIsSyncing(false);
+        setSyncProgress(null);
+      }
+    })();
+  }
+
+  async function handleSignOut() {
+    await clearPersistedToken();
+    signOut();
   }
 
   const selectedSurfaceHint = selectedTooth
@@ -210,7 +301,11 @@ export default function HomeScreen() {
 
         <SectionCard
           title="Archive Queue"
-          description="Every locally saved image is already staged for the Google Drive upload pass. Manual sync stays disabled until auth and multipart upload are wired."
+          description={
+            accessToken
+              ? "Connected to Google Drive. Tap sync to upload pending captures."
+              : "Sign in to Google Drive to enable cloud archiving."
+          }
         >
           <View style={styles.queueRow}>
             <View style={styles.queuePill}>
@@ -221,19 +316,49 @@ export default function HomeScreen() {
                 {pendingCount}
               </Text>
             </View>
+
+            {isSyncing && syncProgress ? (
+              <View style={styles.syncProgressRow}>
+                <ActivityIndicator color="#0E788E" />
+                <Text selectable style={styles.syncProgressText}>
+                  Uploading {syncProgress.completed + syncProgress.failed + 1}/
+                  {syncProgress.total}
+                  {syncProgress.current ? ` — ${syncProgress.current}` : ""}
+                </Text>
+              </View>
+            ) : null}
+
             <Pressable
               onPress={handleSyncPress}
-              disabled={!GOOGLE_DRIVE_SYNC_ENABLED}
+              disabled={isSyncing}
               style={({ pressed }) => [
                 styles.syncButton,
-                !GOOGLE_DRIVE_SYNC_ENABLED && styles.syncButtonDisabled,
-                pressed && GOOGLE_DRIVE_SYNC_ENABLED && styles.syncButtonPressed,
+                isSyncing && styles.syncButtonDisabled,
+                pressed && !isSyncing && styles.syncButtonPressed,
               ]}
             >
               <Text selectable style={styles.syncButtonText}>
-                Sync pending uploads
+                {!accessToken
+                  ? "Sign in to Google Drive"
+                  : isSyncing
+                    ? "Syncing..."
+                    : "Sync pending uploads"}
               </Text>
             </Pressable>
+
+            {accessToken ? (
+              <Pressable
+                onPress={handleSignOut}
+                style={({ pressed }) => [
+                  styles.signOutButton,
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <Text selectable style={styles.signOutButtonText}>
+                  Sign out of Google Drive
+                </Text>
+              </Pressable>
+            ) : null}
           </View>
         </SectionCard>
 
@@ -402,5 +527,26 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "700",
+  },
+  syncProgressRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 4,
+  },
+  syncProgressText: {
+    color: "#11313C",
+    fontSize: 14,
+    fontWeight: "600",
+    flex: 1,
+  },
+  signOutButton: {
+    alignItems: "center",
+    paddingVertical: 10,
+  },
+  signOutButtonText: {
+    color: "#A03227",
+    fontSize: 14,
+    fontWeight: "600",
   },
 });
