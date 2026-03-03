@@ -64,6 +64,8 @@ export function useGoogleAuthRequest() {
   const redirectUri = AuthSession.makeRedirectUri({
     scheme: "cuspiscam",
     path: "redirect",
+    preferLocalhost: false,
+    useProxy: true,
   });
 
   const [request, response, promptAsync] = AuthSession.useAuthRequest(
@@ -77,7 +79,11 @@ export function useGoogleAuthRequest() {
     DISCOVERY,
   );
 
-  return { request, response, promptAsync };
+  return {
+    request,
+    response,
+    promptAsync: () => promptAsync({ useProxy: true }),
+  };
 }
 
 // ─── Quick token validation ─────────────────────────────────────

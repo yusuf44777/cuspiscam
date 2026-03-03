@@ -26,7 +26,7 @@ export async function captureDentalPhoto({
   }
 
   const result = await ImagePicker.launchCameraAsync({
-    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    mediaTypes: ["images"],
     quality: 1,
     allowsEditing: false,
     exif: false,
