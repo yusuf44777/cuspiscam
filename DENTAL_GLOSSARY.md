@@ -77,16 +77,16 @@ Her dişin **5 yüzeyi** vardır. Fotoğraf çekerken hangi yüzeyden baktığı
 Uygulamada bir fotoğraf çekildiğinde dosya adı şu formatta oluşur:
 
 ```
-{SessionID}_{Çene}-{DişTürü}_{Yüzey}_{Tarih}.jpg
+Tooth-{Çene}-{DişTürü}_Surface-{Yüzey}_{Tarih-Saat}.jpg
 ```
 
 **Örnekler:**
 
-| Dosya Adı                              | Anlamı                                                    |
-|----------------------------------------|-----------------------------------------------------------|
-| `abc123_Max-Central_OI_20260303.jpg`   | Üst çene, santral kesici, oklüzal/insisal yüzey          |
-| `abc123_Mand-1stMolar_BF_20260303.jpg` | Alt çene, 1. molar (büyük azı), bukkal/fasiyal yüzey     |
-| `abc123_Max-Canine_LP_20260303.jpg`    | Üst çene, kanin (köpek dişi), lingual/palatal yüzey      |
+| Dosya Adı                                              | Anlamı                                                    |
+|---------------------------------------------------------|-----------------------------------------------------------|
+| `Tooth-Max-Central_Surface-OI_20260303-142530.jpg`      | Üst çene, santral kesici, oklüzal/insisal yüzey          |
+| `Tooth-Mand-1stMolar_Surface-BF_20260303-143012.jpg`    | Alt çene, 1. molar (büyük azı), bukkal/fasiyal yüzey     |
+| `Tooth-Max-Canine_Surface-LP_20260303-143500.jpg`       | Üst çene, kanin (köpek dişi), lingual/palatal yüzey      |
 
 ---
 
@@ -113,7 +113,8 @@ Uygulamada bir fotoğraf çekildiğinde dosya adı şu formatta oluşur:
 1. **Çene seç** → Üst (Maxillary) veya Alt (Mandibular)
 2. **Diş türü seç** → Dropdown'dan (Central, Lateral, Canine, vb.)
 3. **Yüzey seç** → 5 butondan biri (O/I, M, D, B/F, L/P) — bu aşamada kamera açılır
-4. **Fotoğraf çek** → Otomatik olarak yerel depolamaya kaydedilir
+   - Alternatif: Her yüzey butonunun yanındaki **"Galeriden Al"** butonuna basarak, önceden çekilmiş (ör. Samsung Pro mod) bir fotoğrafı içe aktarın
+4. **Fotoğraf çek / seç** → Otomatik olarak yerel depolamaya kaydedilir
 5. **Senkronize et** → Google Drive'a yükle
 
 ---
