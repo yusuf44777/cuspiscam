@@ -28,7 +28,7 @@ import Reanimated, {
 type ExposureStep = { label: string; value: number };
 type ISOStep = { label: string; value: number };
 type WBPreset = { label: string; temp: number };
-type FocusMode = "auto" | "locked";
+type SpeedStep = { label: string; value: number };
 
 const ReanimatedCamera = Reanimated.createAnimatedComponent(Camera);
 
@@ -36,14 +36,18 @@ const ReanimatedCamera = Reanimated.createAnimatedComponent(Camera);
 
 const EXPOSURE_STEPS: ExposureStep[] = [
   { label: "-2", value: -2 },
+  { label: "-1.5", value: -1.5 },
   { label: "-1", value: -1 },
+  { label: "-0.5", value: -0.5 },
   { label: "0", value: 0 },
+  { label: "+0.5", value: 0.5 },
   { label: "+1", value: 1 },
   { label: "+2", value: 2 },
 ];
 
 const ISO_STEPS: ISOStep[] = [
   { label: "Oto", value: -1 },
+  { label: "50", value: 50 },
   { label: "100", value: 100 },
   { label: "200", value: 200 },
   { label: "400", value: 400 },
@@ -52,10 +56,20 @@ const ISO_STEPS: ISOStep[] = [
 
 const WB_PRESETS: WBPreset[] = [
   { label: "Oto", temp: -1 },
-  { label: "☀️", temp: 5500 },
-  { label: "☁️", temp: 6500 },
-  { label: "💡", temp: 3200 },
-  { label: "🔦", temp: 4000 },
+  { label: "5000K", temp: 5000 },
+  { label: "☀️ 5500", temp: 5500 },
+  { label: "☁️ 6500", temp: 6500 },
+  { label: "💡 3200", temp: 3200 },
+  { label: "🔦 4000", temp: 4000 },
+];
+
+const SPEED_STEPS: SpeedStep[] = [
+  { label: "Oto", value: -1 },
+  { label: "1/60", value: 60 },
+  { label: "1/125", value: 125 },
+  { label: "1/250", value: 250 },
+  { label: "1/500", value: 500 },
+  { label: "1/1000", value: 1000 },
 ];
 
 const ZOOM_LEVELS = [1, 1.5, 2, 3];
@@ -71,12 +85,14 @@ export default function ProCameraScreen() {
 
   const cameraRef = useRef<Camera>(null);
 
-  // ── Pro controls state ────────────────────
-  const [exposureIdx, setExposureIdx] = useState(2); // default 0
-  const [isoIdx, setIsoIdx] = useState(0); // default Auto
-  const [wbIdx, setWbIdx] = useState(0); // default Auto
-  const [zoomIdx, setZoomIdx] = useState(0); // default 1x
+  // ── Pro controls state ── (Defaults: ISO 50, 1/125s, EV -2, Manual Focus, WB 5000K)
+  const [exposureIdx, setExposureIdx] = useState(0); // EV -2
+  const [isoIdx, setIsoIdx] = useState(1); // ISO 50
+  const [wbIdx, setWbIdx] = useState(1); // 5000K
+  const [speedIdx, setSpeedIdx] = useState(2); // 1/125s
+  const [zoomIdx, setZoomIdx] = useState(0); // 1x
   const [flash, setFlash] = useState<"off" | "on">("off");
+  const [focusMode, setFocusMode] = useState<"manual" | "auto">("manual");
   const [isTaking, setIsTaking] = useState(false);
   const [focusPoint, setFocusPoint] = useState<{ x: number; y: number } | null>(null);
 
@@ -93,6 +109,7 @@ export default function ProCameraScreen() {
   const currentExposure = EXPOSURE_STEPS[exposureIdx].value;
   const currentISO = ISO_STEPS[isoIdx].value;
   const currentWB = WB_PRESETS[wbIdx].temp;
+  const currentSpeed = SPEED_STEPS[speedIdx].value;
   const currentZoom = ZOOM_LEVELS[zoomIdx];
 
   useEffect(() => {
@@ -155,8 +172,10 @@ export default function ProCameraScreen() {
     setExposureIdx((i) => (i + 1) % EXPOSURE_STEPS.length);
   const cycleISO = () => setIsoIdx((i) => (i + 1) % ISO_STEPS.length);
   const cycleWB = () => setWbIdx((i) => (i + 1) % WB_PRESETS.length);
+  const cycleSpeed = () => setSpeedIdx((i) => (i + 1) % SPEED_STEPS.length);
   const cycleZoom = () => setZoomIdx((i) => (i + 1) % ZOOM_LEVELS.length);
   const toggleFlash = () => setFlash((f) => (f === "off" ? "on" : "off"));
+  const toggleFocus = () => setFocusMode((m) => (m === "manual" ? "auto" : "manual"));
 
   // ── Early returns ─────────────────────────
   if (!hasPermission) {
@@ -216,8 +235,22 @@ export default function ProCameraScreen() {
 
       {/* Pro controls panel */}
       <View style={styles.controlsPanel}>
-        {/* Row 1: EV / ISO / WB */}
+        {/* Row 1: ISO / SPEED / EV */}
         <View style={styles.controlRow}>
+          <Pressable onPress={cycleISO} style={styles.controlBtn}>
+            <Text style={styles.controlLabel}>ISO</Text>
+            <Text style={styles.controlValue}>
+              {ISO_STEPS[isoIdx].label}
+            </Text>
+          </Pressable>
+
+          <Pressable onPress={cycleSpeed} style={styles.controlBtn}>
+            <Text style={styles.controlLabel}>SPEED</Text>
+            <Text style={styles.controlValue}>
+              {SPEED_STEPS[speedIdx].label}
+            </Text>
+          </Pressable>
+
           <Pressable onPress={cycleExposure} style={styles.controlBtn}>
             <Text style={styles.controlLabel}>EV</Text>
             <Text style={styles.controlValue}>
@@ -225,10 +258,10 @@ export default function ProCameraScreen() {
             </Text>
           </Pressable>
 
-          <Pressable onPress={cycleISO} style={styles.controlBtn}>
-            <Text style={styles.controlLabel}>ISO</Text>
-            <Text style={styles.controlValue}>
-              {ISO_STEPS[isoIdx].label}
+          <Pressable onPress={toggleFocus} style={styles.controlBtn}>
+            <Text style={styles.controlLabel}>FOCUS</Text>
+            <Text style={[styles.controlValue, focusMode === "manual" && styles.controlActive]}>
+              {focusMode === "manual" ? "MF" : "AF"}
             </Text>
           </Pressable>
 
@@ -238,7 +271,10 @@ export default function ProCameraScreen() {
               {WB_PRESETS[wbIdx].label}
             </Text>
           </Pressable>
+        </View>
 
+        {/* Row 2: ZOOM / FLASH */}
+        <View style={styles.controlRow}>
           <Pressable onPress={cycleZoom} style={styles.controlBtn}>
             <Text style={styles.controlLabel}>ZOOM</Text>
             <Text style={styles.controlValue}>{currentZoom}x</Text>
@@ -367,6 +403,9 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 18,
     fontWeight: "700",
+  },
+  controlActive: {
+    color: "#FFD700",
   },
   captureRow: {
     alignItems: "center",
