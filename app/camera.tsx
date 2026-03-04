@@ -12,6 +12,7 @@ import {
   Camera,
   useCameraDevice,
   useCameraPermission,
+  useCameraFormat,
   PhotoFile,
   CameraProps,
 } from "react-native-vision-camera";
@@ -83,6 +84,13 @@ export default function ProCameraScreen() {
   const { hasPermission, requestPermission } = useCameraPermission();
   const device = useCameraDevice("back");
 
+  // ── Best quality format: max photo resolution, ISO range including 50 ──
+  const format = useCameraFormat(device, [
+    { photoResolution: "max" },
+    { iso: 50 },
+    { photoHdr: true },
+  ]);
+
   const cameraRef = useRef<Camera>(null);
 
   // ── Pro controls state ── (Defaults: ISO 50, 1/125s, EV -2, Manual Focus, WB 5000K)
@@ -106,11 +114,25 @@ export default function ProCameraScreen() {
   }, [hasPermission, requestPermission]);
 
   // ── Derived values ────────────────────────
-  const currentExposure = EXPOSURE_STEPS[exposureIdx].value;
   const currentISO = ISO_STEPS[isoIdx].value;
   const currentWB = WB_PRESETS[wbIdx].temp;
   const currentSpeed = SPEED_STEPS[speedIdx].value;
   const currentZoom = ZOOM_LEVELS[zoomIdx];
+
+  // Clamp exposure to the device's supported range
+  const rawExposure = EXPOSURE_STEPS[exposureIdx].value;
+  const currentExposure = device
+    ? Math.max(device.minExposure, Math.min(device.maxExposure, rawExposure))
+    : rawExposure;
+
+  // Check if format supports HDR
+  const supportsHdr = format?.supportsPhotoHdr ?? false;
+
+  // ── Native Camera2 manual values ──────────
+  // Convert shutter speed fraction to nanoseconds: 1/125s = 8,000,000 ns
+  const shutterSpeedNs = currentSpeed > 0
+    ? Math.round(1_000_000_000 / currentSpeed)
+    : -1;
 
   useEffect(() => {
     zoom.value = withTiming(currentZoom, { duration: 200 });
@@ -202,11 +224,20 @@ export default function ProCameraScreen() {
           ref={cameraRef}
           style={StyleSheet.absoluteFill}
           device={device}
+          format={format}
           isActive={true}
           photo={true}
+          photoHdr={supportsHdr}
+          photoQualityBalance="quality"
           exposure={currentExposure}
           animatedProps={animatedProps}
           enableZoomGesture={true}
+          lowLightBoost={false}
+          // @ts-ignore — native props added by withManualCameraControls plugin
+          manualISO={currentISO}
+          manualShutterSpeed={shutterSpeedNs}
+          manualWhiteBalance={currentWB}
+          manualFocusMode={focusMode}
         />
 
         {/* Focus indicator */}

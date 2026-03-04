@@ -24,7 +24,8 @@
           "cameraPermissionText": "CuspisCam, klinik diş fotoğrafçılığı için kameranıza erişim ister.",
           "enableMicrophonePermission": false
         }
-      ]
+      ],
+      "./plugins/withManualCameraControls.js"
     ],
     "experiments": {
       "typedRoutes": false
