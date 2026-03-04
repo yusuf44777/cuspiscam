@@ -17,7 +17,14 @@
           "cameraPermission": "Allow CuspisCam to launch the native camera for standardized clinical dental photography."
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "react-native-vision-camera",
+        {
+          "cameraPermissionText": "CuspisCam, klinik diş fotoğrafçılığı için kameranıza erişim ister.",
+          "enableMicrophonePermission": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": false

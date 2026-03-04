@@ -10,6 +10,14 @@ export type BannerState =
     }
   | null;
 
+export type ProCameraResult = {
+  path: string;
+  width: number;
+  height: number;
+  tooth: string;
+  surface: string;
+} | null;
+
 type CaptureState = {
   // ── Seçim ───────────────────────────────
   selectedArch: ArchId | null;
@@ -18,6 +26,9 @@ type CaptureState = {
   pendingCount: number;
   isCapturing: boolean;
   banner: BannerState;
+
+  // ── Pro Camera ─────────────────────────
+  proCameraResult: ProCameraResult;
 
   // ── Google Auth ────────────────────────────
   accessToken: string | null;
@@ -33,6 +44,10 @@ type CaptureState = {
   showBanner: (banner: Exclude<BannerState, null>) => void;
   clearBanner: () => void;
 
+  // ── Pro Camera aksiyonları ─────────────
+  setProCameraResult: (result: ProCameraResult) => void;
+  clearProCameraResult: () => void;
+
   // ── Auth aksiyonları ───────────────────────
   setAccessToken: (token: string | null) => void;
   setIsSyncing: (syncing: boolean) => void;
@@ -47,6 +62,9 @@ export const useCaptureStore = create<CaptureState>((set) => ({
   pendingCount: 0,
   isCapturing: false,
   banner: null,
+
+  // Pro Camera
+  proCameraResult: null,
 
   // Auth defaults
   accessToken: null,
@@ -68,6 +86,10 @@ export const useCaptureStore = create<CaptureState>((set) => ({
     })),
   showBanner: (banner) => set({ isCapturing: false, banner }),
   clearBanner: () => set({ banner: null }),
+
+  // Pro Camera actions
+  setProCameraResult: (result) => set({ proCameraResult: result }),
+  clearProCameraResult: () => set({ proCameraResult: null }),
 
   // Auth actions
   setAccessToken: (token) => set({ accessToken: token }),

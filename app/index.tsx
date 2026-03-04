@@ -1,4 +1,4 @@
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { useEffect, useCallback } from "react";
 import {
   ActivityIndicator,
@@ -27,7 +27,7 @@ import {
   persistToken,
   clearPersistedToken,
 } from "../src/services/googleAuth";
-import { captureDentalPhoto } from "../src/services/captureService";
+import { captureDentalPhoto, processProCameraPhoto } from "../src/services/captureService";
 import {
   enqueueUpload,
   getPendingUploadCount,
@@ -36,6 +36,7 @@ import {
 import { useCaptureStore } from "../src/store/useCaptureStore";
 
 export default function HomeScreen() {
+  const router = useRouter();
   const selectedArch = useCaptureStore((state) => state.selectedArch);
   const selectedTooth = useCaptureStore((state) => state.selectedTooth);
   const recentCaptures = useCaptureStore((state) => state.recentCaptures);
@@ -58,6 +59,10 @@ export default function HomeScreen() {
   const setIsSyncing = useCaptureStore((state) => state.setIsSyncing);
   const setSyncProgress = useCaptureStore((state) => state.setSyncProgress);
   const signOut = useCaptureStore((state) => state.signOut);
+  const proCameraResult = useCaptureStore((state) => state.proCameraResult);
+  const clearProCameraResult = useCaptureStore(
+    (state) => state.clearProCameraResult,
+  );
 
   const { promptAsync } = useGoogleAuthRequest();
 
@@ -106,6 +111,32 @@ export default function HomeScreen() {
     return () => clearTimeout(timer);
   }, [banner, clearBanner]);
 
+  // ── Process pro camera result when returning ────
+  useEffect(() => {
+    if (!proCameraResult) return;
+    const result = proCameraResult;
+    clearProCameraResult();
+
+    void (async () => {
+      try {
+        const record = await processProCameraPhoto({
+          filePath: result.path,
+          tooth: result.tooth,
+          surfaceId: result.surface as SurfaceId,
+        });
+        await enqueueUpload(record);
+        finishCapture(record);
+        await hydrateQueueCount();
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Pro kamera görüntüsü kaydedilemedi.";
+        showBanner({ tone: "error", text: message });
+      }
+    })();
+  }, [proCameraResult]);
+
   async function hydrateQueueCount() {
     const count = await getPendingUploadCount();
     setPendingCount(count);
@@ -116,39 +147,43 @@ export default function HomeScreen() {
       return;
     }
 
-    beginCapture();
-
-    const toothFileSegment = buildToothFileSegment(selectedArch, selectedTooth);
-
-    try {
-      const result = await captureDentalPhoto({
-        tooth: toothFileSegment,
-        surfaceId,
-        source,
-      });
-
-      if (!result) {
-        showBanner({
-          tone: "info",
-          text: "Kamera çekimi iptal edildi.",
+    // Gallery mode: use image picker
+    if (source === "gallery") {
+      beginCapture();
+      const toothFileSegment = buildToothFileSegment(selectedArch, selectedTooth);
+      try {
+        const result = await captureDentalPhoto({
+          tooth: toothFileSegment,
+          surfaceId,
+          source: "gallery",
         });
-        return;
+        if (!result) {
+          showBanner({ tone: "info", text: "Galeri seçimi iptal edildi." });
+          return;
+        }
+        await enqueueUpload(result);
+        finishCapture(result);
+        await hydrateQueueCount();
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Galeri görüntüsü kaydedilemedi.";
+        showBanner({ tone: "error", text: message });
       }
-
-      await enqueueUpload(result);
-      finishCapture(result);
-      await hydrateQueueCount();
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Kamera açılamadı veya görüntü kaydedilemedi.";
-
-      showBanner({
-        tone: "error",
-        text: message,
-      });
+      return;
     }
+
+    // Pro camera mode: navigate to camera screen
+    const toothFileSegment = buildToothFileSegment(selectedArch, selectedTooth);
+    router.push({
+      pathname: "/camera",
+      params: {
+        tooth: toothFileSegment,
+        surface: surfaceId,
+        label: toothLabel ?? "",
+      },
+    });
   }
 
   function handleSyncPress() {

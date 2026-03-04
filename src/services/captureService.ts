@@ -116,3 +116,43 @@ function createCaptureId(capturedAt: string, tooth: string, surfaceId: SurfaceId
   return `${compactTime}-${tooth}-${surfaceId}`;
 }
 
+/**
+ * Process a photo taken by the pro camera (react-native-vision-camera).
+ * The photo file is already on disk at `filePath`; we just need to
+ * copy it into the standard captures directory with the correct name.
+ */
+export async function processProCameraPhoto({
+  filePath,
+  tooth,
+  surfaceId,
+}: {
+  filePath: string;
+  tooth: string;
+  surfaceId: SurfaceId;
+}): Promise<CaptureRecord> {
+  const capturedAt = new Date().toISOString();
+  const extension = detectExtension(filePath);
+  const fileName = buildCaptureFileName({
+    tooth,
+    surfaceId,
+    capturedAt,
+    extension,
+  });
+
+  // vision-camera returns a path without file:// prefix
+  const sourceUri = filePath.startsWith("file://")
+    ? filePath
+    : `file://${filePath}`;
+
+  const localUri = await persistCapturedAsset(sourceUri, fileName);
+
+  return {
+    id: createCaptureId(capturedAt, tooth, surfaceId),
+    tooth,
+    surfaceId,
+    capturedAt,
+    fileName,
+    localUri,
+  };
+}
+
