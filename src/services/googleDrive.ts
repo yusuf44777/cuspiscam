@@ -1,4 +1,5 @@
 import * as FileSystem from "expo-file-system/legacy";
+import { runtimeConfig } from "../config/runtimeConfig";
 import type { QueuedUpload } from "../types/capture";
 
 export const GOOGLE_DRIVE_SYNC_ENABLED = true;
@@ -7,7 +8,7 @@ const DRIVE_API = "https://www.googleapis.com/drive/v3";
 const UPLOAD_API = "https://www.googleapis.com/upload/drive/v3";
 
 /** Pre-configured shared folder — all uploads land here. */
-const TARGET_FOLDER_ID = "1M4bPV0gFeyhkbt6l6iwNJCKJUCK1Jeim";
+const TARGET_FOLDER_ID = runtimeConfig.googleDriveFolderId;
 
 // ─── Return the target folder ID ─────────────────────────────────
 
@@ -152,4 +153,3 @@ function detectMimeType(fileName: string): string {
       return "application/octet-stream";
   }
 }
-

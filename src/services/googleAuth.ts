@@ -2,11 +2,9 @@ import * as WebBrowser from "expo-web-browser";
 import * as Linking from "expo-linking";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useCallback } from "react";
+import { runtimeConfig } from "../config/runtimeConfig";
 
 WebBrowser.maybeCompleteAuthSession();
-
-const GOOGLE_CLIENT_ID =
-  "90944402860-bdfg85etkj4de1vmp457p4nd3jplbo84.apps.googleusercontent.com";
 
 const SCOPES = [
   "https://www.googleapis.com/auth/drive.file",
@@ -21,8 +19,6 @@ const TOKEN_STORAGE_KEY = "@cuspiscam/google-token";
  * Expo's auth proxy at auth.expo.io forwards the token back to the app
  * via a deep-link, so Google only sees this https:// URL.
  */
-const PROXY_REDIRECT_URI = "https://auth.expo.io/@cuspiscam/cuspiscam";
-
 // ─── Auth result type ───────────────────────────────────────────
 
 export type AuthResult =
@@ -77,8 +73,8 @@ export function useGoogleAuthRequest() {
   const promptAsync = useCallback(async (): Promise<AuthResult> => {
     // 1️⃣  Build Google OAuth URL — redirect_uri points to the proxy
     const authParams = new URLSearchParams({
-      client_id: GOOGLE_CLIENT_ID,
-      redirect_uri: PROXY_REDIRECT_URI,
+      client_id: runtimeConfig.googleClientId,
+      redirect_uri: runtimeConfig.proxyRedirectUri,
       response_type: "token",
       scope: SCOPES.join(" "),
       include_granted_scopes: "true",
@@ -87,7 +83,7 @@ export function useGoogleAuthRequest() {
 
     // 2️⃣  Wrap with the Expo auth proxy
     const proxyParams = new URLSearchParams({ authUrl, returnUrl });
-    const startUrl = `${PROXY_REDIRECT_URI}/start?${proxyParams.toString()}`;
+    const startUrl = `${runtimeConfig.proxyRedirectUri}/start?${proxyParams.toString()}`;
 
     // 3️⃣  Open system browser — it auto-closes on redirect to returnUrl
     const result = await WebBrowser.openAuthSessionAsync(startUrl, returnUrl);

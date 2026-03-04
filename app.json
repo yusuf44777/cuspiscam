@@ -27,10 +27,7 @@
       "bundleIdentifier": "com.cuspiscam.app"
     },
     "android": {
-      "package": "com.cuspiscam.app",
-      "permissions": [
-        "android.permission.RECORD_AUDIO"
-      ]
+      "package": "com.cuspiscam.app"
     },
     "extra": {
       "router": {
